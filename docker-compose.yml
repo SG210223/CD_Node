@@ -1,6 +1,6 @@
 services:
   app:
-    image: ghcr.io/sg210223/node_ci:latest
+    image: ghcr.io/sg210223/ci_node:latest
     ports:
       - "3000:3000"
     restart: always
