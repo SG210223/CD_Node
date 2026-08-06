@@ -1,13 +1,6 @@
-version: '3.9'
-
 services:
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: app:latest
+    image: ghcr.io/ansh-bti2440/node_ci:latest
     ports:
       - "3000:3000"
-    environment:
-      - NODE_ENV=production
-    command: npm start
+    restart: always

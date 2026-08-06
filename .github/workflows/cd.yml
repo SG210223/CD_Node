@@ -1,46 +1,57 @@
-name: CD
-#hi
-#hello
+name: CD - Deploy Application
+ 
 on:
   push:
     branches:
       - main
-
+  workflow_dispatch:
+ 
+permissions:
+  contents: read
+  packages: read
+ 
 jobs:
-  build-and-push:
+  deploy:
     runs-on: ubuntu-latest
-
+ 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '14'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run tests
-        run: npm test
-
-      - name: Build application
-        run: npm run build
-
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+ 
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v5
+        uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ./Dockerfile
-          push: true
-          tags: |
-            ghcr.io/${{ github.repository }}/app:latest
-            ghcr.io/${{ github.repository }}/app:${{ github.sha }}
+          password: ${{ secrets.CD_PAT }}
+ 
+      - name: Pull Latest Docker Image
+        run: docker compose pull
+ 
+      - name: Deploy Application
+        run: docker compose up -d --remove-orphans
+ 
+      - name: Show Running Containers
+        run: docker ps
+ 
+      - name: Wait for Application
+        run: |
+          for i in {1..12}
+          do
+            if curl -f http://localhost:3000 > /dev/null 2>&1; then
+              echo "Application is running."
+              exit 0
+            fi
+ 
+            echo "Waiting for application..."
+            sleep 5
+          done
+ 
+          echo "Application failed to start."
+          docker compose logs
+          exit 1
+ 
+      - name: Smoke Test
+        run: |
+          curl -f http://localhost:3000
+ 
